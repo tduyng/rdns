@@ -12,9 +12,8 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let mut buf = Bytes::copy_from_slice(&buf[..size]);
+                let mut buf = Bytes::copy_from_slice(&buf[..]);
                 let request = DnsPacket::from(&mut buf);
-
                 let request_header = request.header();
                 let op_code = request_header.op_code();
                 let response_code = if op_code == 0 { 0 } else { 4 };
@@ -28,14 +27,14 @@ fn main() -> Result<()> {
                     .question_count(1)
                     .answer_count(1)
                     .build()?;
-                let question_name = request.questions().first().unwrap().name.clone();
+                let question_name = request.questions().first().unwrap().name().clone();
                 let question = DnsQuestion {
                     name: question_name,
                     record_type: 1,
                     class: 1,
                 };
                 let answer = DnsRecord::new(DnsRecord {
-                    name: request.questions().first().unwrap().name.clone(),
+                    name: request.questions().first().unwrap().name().clone(),
                     record_type: 1,
                     class: 1,
                     ttl: 60,

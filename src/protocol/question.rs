@@ -34,4 +34,16 @@ impl DnsQuestion {
     pub fn new(question: DnsQuestion) -> DnsQuestion {
         question
     }
+
+    pub fn name(&self) -> &String {
+        &self.name
+    }
+
+    pub fn record_type(&self) -> u16 {
+        self.record_type
+    }
+
+    pub fn class(&self) -> u16 {
+        self.class
+    }
 }
