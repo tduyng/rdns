@@ -1,6 +1,8 @@
 use anyhow::{Error, Result};
 use bytes::Bytes;
-use dns_starter_rust::protocol::{DnsHeader, DnsHeaderBuilder, DnsPacket, DnsQuestion};
+use dns_starter_rust::protocol::{
+    DnsAnswer, DnsHeader, DnsHeaderBuilder, DnsPacket, DnsQuestion, Record,
+};
 use std::net::UdpSocket;
 
 fn main() -> Result<()> {
@@ -16,14 +18,29 @@ fn main() -> Result<()> {
                 let buf = Bytes::copy_from_slice(&buf[..]);
                 let _ = DnsHeader::try_from(buf.slice(0..12))?;
 
-                let header_builder = DnsHeaderBuilder::new()
+                let header = DnsHeaderBuilder::new()
                     .packet_id(1234)
                     .query_response(1)
                     .question_count(1)
+                    .answer_count(1)
                     .build()?;
 
                 let question = DnsQuestion::new("codecrafters.io", 1, 1);
-                let response_bytes: Bytes = DnsPacket::new(header_builder, question).into();
+                let answer = DnsAnswer::new(Record {
+                    name: "codecrafters.io".to_string(),
+                    record_type: 1,
+                    class: 1,
+                    ttl: 60,
+                    length: 4,
+                    data: vec![0x8, 0x8, 0x8, 0x8],
+                });
+
+                let response_bytes: Bytes = DnsPacket::new(DnsPacket {
+                    header,
+                    questions: vec![question],
+                    answer,
+                })
+                .into();
 
                 udp_socket
                     .send_to(&response_bytes, source)
