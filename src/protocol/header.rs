@@ -54,6 +54,10 @@ impl DnsHeader {
         &self.bytes
     }
 
+    pub fn into(&self) -> Bytes {
+        self.bytes.slice(..)
+    }
+
     pub fn packet_id(&self) -> u16 {
         self.bytes.slice(0..2).get_u16()
     }
