@@ -8,10 +8,10 @@ pub struct DnsPacket {
     pub answers: Vec<DnsRecord>,
 }
 
-impl From<&DnsPacket> for Bytes {
-    fn from(packet: &DnsPacket) -> Self {
+impl From<DnsPacket> for Bytes {
+    fn from(packet: DnsPacket) -> Self {
         let mut bytes = BytesMut::with_capacity(12);
-        bytes.put(packet.header().into());
+        bytes.put(packet.header().bytes().clone());
         for i in 0..packet.header().question_count() as usize {
             if let Some(question) = packet.questions().get(i) {
                 bytes.put::<Bytes>(question.into());

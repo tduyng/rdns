@@ -48,7 +48,7 @@ fn main() -> Result<()> {
                     answers: vec![answer],
                 });
 
-                let response_bytes: Bytes = (&dns_packet).into();
+                let response_bytes: Bytes = dns_packet.into();
 
                 udp_socket
                     .send_to(&response_bytes, source)
