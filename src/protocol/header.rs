@@ -191,12 +191,12 @@ impl DnsHeaderBuilder {
         bytes_mut.put_u16(packet_id);
         bytes_mut.put_u8(
             (query_response << 7)
-                | (op_code << 4)
+                | (op_code << 3)
                 | (authoritative_answer << 2)
                 | (truncated_message << 1)
                 | desired_recursion,
         );
-        bytes_mut.put_u8((available_recursion << 7) | (response_code));
+        bytes_mut.put_u8((available_recursion << 7) | response_code);
         bytes_mut.put_u16(question_count);
         bytes_mut.put_u16(answer_count);
         bytes_mut.put_u16(authority_count);
