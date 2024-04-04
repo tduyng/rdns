@@ -63,27 +63,38 @@ impl DnsHeader {
     }
 
     pub fn query_response(&self) -> u8 {
-        Self::extract_bits(self.bytes[2], 0, 1)
+        // Extract the QR bit (1st bit of the 3rd byte)
+        (self.bytes[2] & 0b1000_0000) >> 7
     }
 
     pub fn op_code(&self) -> u8 {
-        Self::extract_bits(self.bytes[2], 1, 4)
+        // Extract the OPCODE bits (2nd to 5th bits of the 3rd byte)
+        (self.bytes[2] & 0b0111_1000) >> 3
     }
 
     pub fn authoritative_answer(&self) -> u8 {
-        Self::extract_bits(self.bytes[2], 5, 1)
+        // Extract the AA bit (3rd bit of the 3rd byte)
+        (self.bytes[2] & 0b0000_0100) >> 2
     }
 
     pub fn truncated_message(&self) -> u8 {
-        Self::extract_bits(self.bytes[2], 7, 1)
+        // Extract the TC bit (2nd bit of the 3rd byte)
+        (self.bytes[2] & 0b0000_0010) >> 1
+    }
+
+    pub fn desired_recursion(&self) -> u8 {
+        // Extract the RD bit (1st bit of the 3rd byte)
+        self.bytes[2] & 0b0000_0001
     }
 
     pub fn available_recursion(&self) -> u8 {
-        Self::extract_bits(self.bytes[3], 0, 1)
+        // Extract the RA bit (8th bit of the 4th byte)
+        (self.bytes[3] & 0b1000_0000) >> 7
     }
 
     pub fn response_code(&self) -> u8 {
-        Self::extract_bits(self.bytes[3], 4, 4)
+        // Extract the RCODE bits (1st to 4th bits of the 4th byte)
+        self.bytes[3] & 0b0000_1111
     }
 
     pub fn question_count(&self) -> u16 {
@@ -100,11 +111,6 @@ impl DnsHeader {
 
     pub fn additional_count(&self) -> u16 {
         self.bytes.slice(10..12).get_u16()
-    }
-
-    // Extracts the specified number of bits starting from the given offset
-    fn extract_bits(byte: u8, offset: u8, num_bits: u8) -> u8 {
-        (byte >> (8 - offset - num_bits)) & ((1 << num_bits) - 1)
     }
 }
 

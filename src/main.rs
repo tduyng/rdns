@@ -16,11 +16,16 @@ fn main() -> Result<()> {
 
                 // Try to create a DnsHeader from the first 12 bytes of the buffer.
                 let buf = Bytes::copy_from_slice(&buf[..]);
-                let _ = DnsHeader::try_from(buf.slice(0..12))?;
+                let request_header = DnsHeader::try_from(buf.slice(0..12))?;
+                let op_code = request_header.op_code();
+                let response_code = if op_code == 0 { 0 } else { 4 };
 
                 let header = DnsHeaderBuilder::new()
-                    .packet_id(1234)
+                    .packet_id(request_header.packet_id())
                     .query_response(1)
+                    .op_code(op_code)
+                    .desired_recursion(request_header.desired_recursion())
+                    .response_code(response_code)
                     .question_count(1)
                     .answer_count(1)
                     .build()?;
