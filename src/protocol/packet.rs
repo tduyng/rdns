@@ -1,15 +1,15 @@
-use super::{header::DnsHeader, DnsAnswer, DnsQuestion};
+use super::{DnsHeader, DnsQuestion, DnsRecord};
 use bytes::{BufMut, Bytes, BytesMut};
 
 #[derive(Debug)]
 pub struct DnsPacket {
     pub header: DnsHeader,
     pub questions: Vec<DnsQuestion>,
-    pub answer: DnsAnswer,
+    pub answers: Vec<DnsRecord>,
 }
 
-impl From<DnsPacket> for Bytes {
-    fn from(packet: DnsPacket) -> Self {
+impl From<&DnsPacket> for Bytes {
+    fn from(packet: &DnsPacket) -> Self {
         let mut bytes = BytesMut::with_capacity(12);
         bytes.put(packet.header().into());
         for i in 0..packet.header().question_count() as usize {
@@ -17,8 +17,35 @@ impl From<DnsPacket> for Bytes {
                 bytes.put::<Bytes>(question.into());
             }
         }
-        bytes.put::<Bytes>(packet.answer().clone().into());
+        for i in 0..packet.header().answer_count() as usize {
+            if let Some(answer) = packet.answers().get(i) {
+                bytes.put::<Bytes>(answer.into());
+            }
+        }
         bytes.freeze()
+    }
+}
+
+impl From<&mut Bytes> for DnsPacket {
+    fn from(buf: &mut Bytes) -> Self {
+        let buf = Bytes::copy_from_slice(&buf[..]);
+        let header = DnsHeader::try_from(buf.slice(0..12)).unwrap();
+
+        let mut questions: Vec<DnsQuestion> = Vec::with_capacity(header.question_count() as usize);
+        for _ in 0..header.question_count() {
+            questions.push(DnsQuestion::from(&buf));
+        }
+
+        let mut answers: Vec<DnsRecord> = Vec::with_capacity(header.answer_count() as usize);
+        for _ in 0..header.answer_count() {
+            answers.push(DnsRecord::from(&buf));
+        }
+
+        Self {
+            header,
+            questions,
+            answers,
+        }
     }
 }
 
@@ -27,7 +54,7 @@ impl DnsPacket {
         Self {
             header: packet.header,
             questions: packet.questions,
-            answer: packet.answer,
+            answers: packet.answers,
         }
     }
 
@@ -39,7 +66,7 @@ impl DnsPacket {
         &self.questions
     }
 
-    pub fn answer(&self) -> &DnsAnswer {
-        &self.answer
+    pub fn answers(&self) -> &Vec<DnsRecord> {
+        &self.answers
     }
 }

@@ -1,8 +1,6 @@
 use anyhow::{Error, Result};
 use bytes::Bytes;
-use dns_starter_rust::protocol::{
-    DnsAnswer, DnsHeader, DnsHeaderBuilder, DnsPacket, DnsQuestion, Record,
-};
+use dns_starter_rust::protocol::{DnsHeaderBuilder, DnsPacket, DnsQuestion, DnsRecord};
 use std::net::UdpSocket;
 
 fn main() -> Result<()> {
@@ -16,7 +14,9 @@ fn main() -> Result<()> {
 
                 // Try to create a DnsHeader from the first 12 bytes of the buffer.
                 let buf = Bytes::copy_from_slice(&buf[..]);
-                let request_header = DnsHeader::try_from(buf.slice(0..12))?;
+                let request = DnsPacket::from(&mut buf.clone());
+
+                let request_header = request.header();
                 let op_code = request_header.op_code();
                 let response_code = if op_code == 0 { 0 } else { 4 };
 
@@ -29,10 +29,14 @@ fn main() -> Result<()> {
                     .question_count(1)
                     .answer_count(1)
                     .build()?;
-
-                let question = DnsQuestion::new("codecrafters.io", 1, 1);
-                let answer = DnsAnswer::new(Record {
-                    name: "codecrafters.io".to_string(),
+                let question_name = request.questions().first().unwrap().name.clone();
+                let question = DnsQuestion {
+                    name: question_name,
+                    record_type: 1,
+                    class: 1,
+                };
+                let answer = DnsRecord::new(DnsRecord {
+                    name: request.questions().first().unwrap().name.clone(),
                     record_type: 1,
                     class: 1,
                     ttl: 60,
@@ -40,12 +44,13 @@ fn main() -> Result<()> {
                     data: vec![0x8, 0x8, 0x8, 0x8],
                 });
 
-                let response_bytes: Bytes = DnsPacket::new(DnsPacket {
+                let dns_packet = DnsPacket::new(DnsPacket {
                     header,
                     questions: vec![question],
-                    answer,
-                })
-                .into();
+                    answers: vec![answer],
+                });
+
+                let response_bytes: Bytes = (&dns_packet).into();
 
                 udp_socket
                     .send_to(&response_bytes, source)

@@ -1,4 +1,4 @@
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 pub fn encode(name: &str) -> Bytes {
     let mut bytes = BytesMut::new();
@@ -8,4 +8,20 @@ pub fn encode(name: &str) -> Bytes {
     }
     bytes.put_u8(0x00); // Null terminator
     bytes.freeze()
+}
+
+pub fn decode(bytes: &Bytes) -> String {
+    let mut label = String::new();
+    let mut bytes = bytes.slice(..);
+    loop {
+        let len = bytes.get_u8();
+        if len == 0 {
+            break;
+        }
+        let content = bytes.copy_to_bytes(len as usize);
+        label.push_str(std::str::from_utf8(&content[..]).unwrap());
+        label.push('.');
+    }
+    label.pop();
+    label
 }

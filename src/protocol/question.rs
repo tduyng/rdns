@@ -1,12 +1,12 @@
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-use crate::utils::encode;
+use crate::utils::{decode, encode};
 
 #[derive(Debug)]
 pub struct DnsQuestion {
-    name: String,
-    record_type: u16,
-    class: u16,
+    pub name: String,
+    pub record_type: u16,
+    pub class: u16,
 }
 
 impl From<&DnsQuestion> for Bytes {
@@ -19,12 +19,19 @@ impl From<&DnsQuestion> for Bytes {
     }
 }
 
-impl DnsQuestion {
-    pub fn new(name: impl ToString, record_type: u16, class: u16) -> DnsQuestion {
+impl From<&Bytes> for DnsQuestion {
+    fn from(value: &Bytes) -> Self {
+        let len = value.clone().get_u16();
         Self {
-            name: name.to_string(),
-            record_type,
-            class,
+            name: decode(value),
+            record_type: len,
+            class: len,
         }
+    }
+}
+
+impl DnsQuestion {
+    pub fn new(question: DnsQuestion) -> DnsQuestion {
+        question
     }
 }

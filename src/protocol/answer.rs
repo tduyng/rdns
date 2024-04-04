@@ -1,12 +1,8 @@
-use crate::utils::encode;
-use bytes::{BufMut, Bytes, BytesMut};
+use crate::utils::{decode, encode};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 #[derive(Debug, Clone)]
-pub struct DnsAnswer {
-    records: Vec<Record>,
-}
-#[derive(Debug, Clone)]
-pub struct Record {
+pub struct DnsRecord {
     pub name: String,
     pub record_type: u16,
     pub class: u16,
@@ -15,33 +11,39 @@ pub struct Record {
     pub data: Vec<u8>,
 }
 
-impl DnsAnswer {
-    pub fn new(record: Record) -> Self {
-        Self {
-            records: vec![Record {
-                name: record.name,
-                record_type: record.record_type,
-                class: record.class,
-                ttl: record.ttl,
-                length: record.length,
-                data: record.data,
-            }],
-        }
+impl DnsRecord {
+    pub fn new(record: DnsRecord) -> Self {
+        record
     }
 }
 
-impl From<DnsAnswer> for Bytes {
-    fn from(answer: DnsAnswer) -> Self {
+impl From<&DnsRecord> for Bytes {
+    fn from(record: &DnsRecord) -> Self {
         let mut bytes = BytesMut::new();
-        for record in answer.records {
-            bytes.put(encode(&record.name));
-            bytes.put_u16(record.record_type);
-            bytes.put_u16(record.class);
-            bytes.put_u32(record.ttl);
-            bytes.put_u16(record.length);
-            bytes.put(Bytes::from(record.data));
-        }
+        bytes.put(encode(&record.name));
+        bytes.put_u16(record.record_type);
+        bytes.put_u16(record.class);
+        bytes.put_u32(record.ttl);
+        bytes.put_u16(record.length);
+        bytes.put(Bytes::from(record.data.clone()));
 
         bytes.freeze()
+    }
+}
+
+impl From<&Bytes> for DnsRecord {
+    fn from(value: &Bytes) -> Self {
+        let mut value = value.clone();
+        let length = value.get_u16();
+        let data = value.copy_to_bytes(length as usize);
+
+        Self {
+            name: decode(&value),
+            record_type: length,
+            class: length,
+            ttl: value.get_u32(),
+            length,
+            data: Vec::from(data.chunk()),
+        }
     }
 }
