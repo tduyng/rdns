@@ -14,13 +14,14 @@ fn main() -> Result<()> {
 
                 // Try to create a DnsHeader from the first 12 bytes of the buffer.
                 let buf = Bytes::copy_from_slice(&buf[..]);
-                let request_header = DnsHeader::try_from(buf.slice(0..12))?;
-                println!("Request header: {:?}", request_header);
+                let _ = DnsHeader::try_from(buf.slice(0..12))?;
 
                 let header_builder = DnsHeaderBuilder::new()
                     .packet_id(1234)
                     .query_response(1)
+                    .question_count(1)
                     .build()?;
+
                 let question = DnsQuestion::new("codecrafters.io", 1, 1);
                 let response_bytes: Bytes = DnsPacket::new(header_builder, question).into();
 

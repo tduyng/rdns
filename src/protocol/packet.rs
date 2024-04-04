@@ -10,8 +10,10 @@ pub struct DnsPacket {
 impl From<DnsPacket> for Bytes {
     fn from(packet: DnsPacket) -> Self {
         let header_bytes: Bytes = packet.header().bytes().clone();
-        let mut bytes = BytesMut::with_capacity(header_bytes.len());
+        let question_bytes: Bytes = packet.question().into();
+        let mut bytes = BytesMut::with_capacity(header_bytes.len() + question_bytes.len());
         bytes.put(header_bytes);
+        bytes.put(question_bytes);
         bytes.freeze()
     }
 }
