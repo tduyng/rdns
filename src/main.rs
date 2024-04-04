@@ -1,6 +1,6 @@
 use anyhow::{Error, Result};
 use bytes::Bytes;
-use dns_starter_rust::protocol::{DnsHeaderBuilder, DnsPacket, DnsQuestion, DnsRecord};
+use dns_starter_rust::protocol::DnsPacket;
 use std::net::UdpSocket;
 
 fn main() -> Result<()> {
@@ -12,51 +12,7 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let buf = Bytes::copy_from_slice(&buf[..size]);
-                let request = DnsPacket::from(buf);
-
-                let request_header = request.header();
-                let op_code = request_header.op_code();
-                let response_code = if op_code == 0 { 0 } else { 4 };
-
-                let header = DnsHeaderBuilder::new()
-                    .packet_id(request_header.packet_id())
-                    .query_response(1)
-                    .op_code(op_code)
-                    .desired_recursion(request_header.desired_recursion())
-                    .response_code(response_code)
-                    .question_count(request_header.question_count())
-                    .answer_count(request_header.question_count())
-                    .authority_count(request_header.question_count())
-                    .additional_count(request_header.question_count())
-                    .build()?;
-
-                let mut questions: Vec<DnsQuestion> =
-                    Vec::with_capacity(request.header().question_count() as usize);
-                for i in 0..request.header().question_count() as usize {
-                    questions.push(request.questions().get(i).unwrap().to_owned());
-                }
-
-                let mut answers = Vec::with_capacity(request.header().answer_count() as usize);
-                for _ in 0..request.header().question_count() as usize {
-                    let answer = DnsRecord {
-                        name: request.questions().first().unwrap().name().clone(),
-                        record_type: 1,
-                        class: 1,
-                        ttl: 60,
-                        length: 4,
-                        data: vec![0x8, 0x8, 0x8, 0x8],
-                    };
-                    answers.push(answer);
-                }
-
-                let dns_packet = DnsPacket {
-                    header,
-                    questions,
-                    answers,
-                };
-
-                let response_bytes: Bytes = dns_packet.into();
+                let response_bytes: Bytes = DnsPacket::parse_response(Bytes::copy_from_slice(&buf[..size]));
 
                 udp_socket
                     .send_to(&response_bytes, source)
