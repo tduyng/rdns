@@ -10,9 +10,8 @@ pub fn encode(name: &str) -> Bytes {
     bytes.freeze()
 }
 
-pub fn decode(bytes: &Bytes) -> String {
+pub fn decode(bytes: &mut Bytes) -> String {
     let mut label = String::new();
-    let mut bytes = bytes.slice(..);
     loop {
         let len = bytes.get_u8();
         if len == 0 {

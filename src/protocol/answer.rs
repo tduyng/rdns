@@ -31,14 +31,13 @@ impl From<&DnsRecord> for Bytes {
     }
 }
 
-impl From<&Bytes> for DnsRecord {
-    fn from(value: &Bytes) -> Self {
-        let mut value = value.clone();
+impl From<&mut Bytes> for DnsRecord {
+    fn from(value: &mut Bytes) -> Self {
         let length = value.get_u16();
         let data = value.copy_to_bytes(length as usize);
 
         Self {
-            name: decode(&value),
+            name: decode(value),
             record_type: length,
             class: length,
             ttl: value.get_u32(),

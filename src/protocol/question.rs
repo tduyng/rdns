@@ -19,9 +19,9 @@ impl From<&DnsQuestion> for Bytes {
     }
 }
 
-impl From<&Bytes> for DnsQuestion {
-    fn from(value: &Bytes) -> Self {
-        let len = value.clone().get_u16();
+impl From<&mut Bytes> for DnsQuestion {
+    fn from(value: &mut Bytes) -> Self {
+        let len = value.get_u16();
         Self {
             name: decode(value),
             record_type: len,

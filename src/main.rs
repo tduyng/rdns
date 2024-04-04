@@ -12,9 +12,8 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                // Try to create a DnsHeader from the first 12 bytes of the buffer.
-                let buf = Bytes::copy_from_slice(&buf[..]);
-                let request = DnsPacket::from(&mut buf.clone());
+                let mut buf = Bytes::copy_from_slice(&buf[..size]);
+                let request = DnsPacket::from(&mut buf);
 
                 let request_header = request.header();
                 let op_code = request_header.op_code();
