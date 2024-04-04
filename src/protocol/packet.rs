@@ -1,9 +1,10 @@
-use super::header::DnsHeader;
+use super::{header::DnsHeader, DnsQuestion};
 use bytes::{BufMut, Bytes, BytesMut};
 
 #[derive(Debug)]
 pub struct DnsPacket {
     header: DnsHeader,
+    question: DnsQuestion,
 }
 
 impl From<DnsPacket> for Bytes {
@@ -16,11 +17,15 @@ impl From<DnsPacket> for Bytes {
 }
 
 impl DnsPacket {
-    pub fn new(header: DnsHeader) -> Self {
-        Self { header }
+    pub fn new(header: DnsHeader, question: DnsQuestion) -> Self {
+        Self { header, question }
     }
 
     pub fn header(&self) -> &DnsHeader {
         &self.header
+    }
+
+    pub fn question(&self) -> &DnsQuestion {
+        &self.question
     }
 }

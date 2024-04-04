@@ -1,5 +1,5 @@
-use bytes::{Buf, BufMut, Bytes, BytesMut};
 use anyhow::Result;
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 #[derive(Debug)]
 pub struct DnsHeader {
