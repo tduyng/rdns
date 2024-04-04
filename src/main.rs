@@ -12,8 +12,9 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let mut buf = Bytes::copy_from_slice(&buf[..]);
+                let mut buf = Bytes::copy_from_slice(&buf[..size]);
                 let request = DnsPacket::from(&mut buf);
+                
                 let request_header = request.header();
                 let op_code = request_header.op_code();
                 let response_code = if op_code == 0 { 0 } else { 4 };

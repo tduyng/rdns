@@ -27,18 +27,18 @@ impl From<DnsPacket> for Bytes {
 }
 
 impl From<&mut Bytes> for DnsPacket {
-    fn from(buf: &mut Bytes) -> Self {
-        let header = DnsHeader::try_from(buf.slice(0..12)).unwrap();
-        buf.advance(12);
+    fn from(bytes: &mut Bytes) -> Self {
+        let header = DnsHeader::try_from(bytes.slice(0..12)).unwrap();
+        bytes.advance(12);
 
         let mut questions: Vec<DnsQuestion> = Vec::with_capacity(header.question_count() as usize);
         for _ in 0..header.question_count() {
-            questions.push(DnsQuestion::from(&mut *buf));
+            questions.push(DnsQuestion::from(&mut *bytes));
         }
 
         let mut answers: Vec<DnsRecord> = Vec::with_capacity(header.answer_count() as usize);
         for _ in 0..header.answer_count() {
-            answers.push(DnsRecord::from(&mut *buf));
+            answers.push(DnsRecord::from(&mut *bytes));
         }
 
         Self {

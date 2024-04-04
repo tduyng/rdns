@@ -20,12 +20,12 @@ impl From<&DnsQuestion> for Bytes {
 }
 
 impl From<&mut Bytes> for DnsQuestion {
-    fn from(value: &mut Bytes) -> Self {
-        let len = value.get_u16();
+    fn from(bytes: &mut Bytes) -> Self {
+        let name = decode(bytes);
         Self {
-            name: decode(value),
-            record_type: len,
-            class: len,
+            name,
+            record_type: bytes.get_u16(),
+            class: bytes.get_u16(),
         }
     }
 }
