@@ -2,7 +2,7 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 
 use crate::utils::{decode, encode};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DnsQuestion {
     pub name: String,
     pub record_type: u16,
@@ -19,18 +19,28 @@ impl From<&DnsQuestion> for Bytes {
     }
 }
 
-impl From<&mut Bytes> for DnsQuestion {
-    fn from(bytes: &mut Bytes) -> Self {
-        let name = decode(bytes);
+impl DnsQuestion {
+    pub fn from_bytes(bytes: &mut Bytes, original: &Bytes) -> Self {
+        let name = decode(bytes, original);
+        let record_type = if bytes.remaining() >= 2 {
+            bytes.get_u16()
+        } else {
+            1
+        };
+
+        let class = if bytes.remaining() >= 2 {
+            bytes.get_u16()
+        } else {
+            1
+        };
+
         Self {
             name,
-            record_type: bytes.get_u16(),
-            class: bytes.get_u16(),
+            record_type,
+            class,
         }
     }
-}
 
-impl DnsQuestion {
     pub fn name(&self) -> &String {
         &self.name
     }

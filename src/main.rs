@@ -12,9 +12,9 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let mut buf = Bytes::copy_from_slice(&buf[..size]);
-                let request = DnsPacket::from(&mut buf);
-                
+                let buf = Bytes::copy_from_slice(&buf[..size]);
+                let request = DnsPacket::from(buf);
+
                 let request_header = request.header();
                 let op_code = request_header.op_code();
                 let response_code = if op_code == 0 { 0 } else { 4 };
@@ -25,28 +25,35 @@ fn main() -> Result<()> {
                     .op_code(op_code)
                     .desired_recursion(request_header.desired_recursion())
                     .response_code(response_code)
-                    .question_count(1)
-                    .answer_count(1)
+                    .question_count(request_header.question_count())
+                    .answer_count(request_header.question_count())
+                    .authority_count(request_header.question_count())
+                    .additional_count(request_header.question_count())
                     .build()?;
 
-                let question = DnsQuestion {
-                    name: request.questions().first().unwrap().name().clone(),
-                    record_type: 1,
-                    class: 1,
-                };
-                let answer = DnsRecord {
-                    name: request.questions().first().unwrap().name().clone(),
-                    record_type: 1,
-                    class: 1,
-                    ttl: 60,
-                    length: 4,
-                    data: vec![0x8, 0x8, 0x8, 0x8],
-                };
+                let mut questions: Vec<DnsQuestion> =
+                    Vec::with_capacity(request.header().question_count() as usize);
+                for i in 0..request.header().question_count() as usize {
+                    questions.push(request.questions().get(i).unwrap().to_owned());
+                }
+
+                let mut answers = Vec::with_capacity(request.header().answer_count() as usize);
+                for _ in 0..request.header().question_count() as usize {
+                    let answer = DnsRecord {
+                        name: request.questions().first().unwrap().name().clone(),
+                        record_type: 1,
+                        class: 1,
+                        ttl: 60,
+                        length: 4,
+                        data: vec![0x8, 0x8, 0x8, 0x8],
+                    };
+                    answers.push(answer);
+                }
 
                 let dns_packet = DnsPacket {
                     header,
-                    questions: vec![question],
-                    answers: vec![answer],
+                    questions,
+                    answers,
                 };
 
                 let response_bytes: Bytes = dns_packet.into();

@@ -1,5 +1,5 @@
 use super::{DnsHeader, DnsQuestion, DnsRecord};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 
 #[derive(Debug)]
 pub struct DnsPacket {
@@ -26,19 +26,19 @@ impl From<DnsPacket> for Bytes {
     }
 }
 
-impl From<&mut Bytes> for DnsPacket {
-    fn from(bytes: &mut Bytes) -> Self {
-        let header = DnsHeader::try_from(bytes.slice(0..12)).unwrap();
-        bytes.advance(12);
+impl From<Bytes> for DnsPacket {
+    fn from(mut bytes: Bytes) -> Self {
+        let original = bytes.clone();
+        let header = DnsHeader::try_from(&mut bytes).unwrap();
 
         let mut questions: Vec<DnsQuestion> = Vec::with_capacity(header.question_count() as usize);
         for _ in 0..header.question_count() {
-            questions.push(DnsQuestion::from(&mut *bytes));
+            questions.push(DnsQuestion::from_bytes(&mut bytes, &original));
         }
 
         let mut answers: Vec<DnsRecord> = Vec::with_capacity(header.answer_count() as usize);
         for _ in 0..header.answer_count() {
-            answers.push(DnsRecord::from(&mut *bytes));
+            answers.push(DnsRecord::from_bytes(&mut bytes, &original));
         }
 
         Self {

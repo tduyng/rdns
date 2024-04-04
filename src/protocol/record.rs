@@ -25,14 +25,15 @@ impl From<&DnsRecord> for Bytes {
     }
 }
 
-impl From<&mut Bytes> for DnsRecord {
-    fn from(bytes: &mut Bytes) -> Self {
-        let name = decode(bytes);
+impl DnsRecord {
+    pub fn from_bytes(bytes: &mut Bytes, orig: &Bytes) -> Self {
+        let name = decode(bytes, orig);
         let record_type = bytes.get_u16();
         let class = bytes.get_u16();
         let ttl = bytes.get_u32();
         let length = bytes.get_u16();
         let data = bytes.copy_to_bytes(length as usize);
+
         Self {
             name,
             record_type,

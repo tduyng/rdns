@@ -10,16 +10,23 @@ pub fn encode(name: &str) -> Bytes {
     bytes.freeze()
 }
 
-pub fn decode(bytes: &mut Bytes) -> String {
+pub fn decode(bytes: &mut Bytes, original: &Bytes) -> String {
     let mut label = String::new();
     loop {
         let len = bytes.get_u8();
         if len == 0 {
             break;
+        } else if len >> 6 == 0b11 {
+            let byte_two = bytes.get_u8();
+            let offset: usize = ((((len & 0b0011_1111) as u16) << 8) | byte_two as u16) as usize;
+            let name = decode(&mut original.clone().slice(offset..), original);
+            label.push_str(name.as_str());
+            label.push('.');
+        } else {
+            let content = bytes.copy_to_bytes(len as usize);
+            label.push_str(std::str::from_utf8(&content[..]).unwrap());
+            label.push('.');
         }
-        let content = bytes.copy_to_bytes(len as usize);
-        label.push_str(std::str::from_utf8(&content[..]).unwrap());
-        label.push('.');
     }
     label.pop();
     label

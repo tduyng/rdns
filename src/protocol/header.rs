@@ -1,7 +1,7 @@
 use anyhow::Result;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DnsHeader {
     bytes: Bytes,
 }
@@ -22,18 +22,12 @@ pub struct DnsHeaderBuilder {
     additional_count: Option<u16>,
 }
 
-impl TryFrom<Bytes> for DnsHeader {
+impl TryFrom<&mut Bytes> for DnsHeader {
     type Error = anyhow::Error;
 
-    fn try_from(bytes: Bytes) -> Result<Self, Self::Error> {
-        let len = bytes.len();
-
-        if len != 12 {
-            return Err(anyhow::anyhow!(
-                "Expected 12 bytes for header, but got {}",
-                len
-            ));
-        }
+    fn try_from(buf: &mut Bytes) -> Result<Self, Self::Error> {
+        let bytes = buf.slice(0..12);
+        buf.advance(12);
 
         Ok(DnsHeader { bytes })
     }
