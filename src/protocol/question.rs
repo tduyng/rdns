@@ -31,10 +31,6 @@ impl From<&mut Bytes> for DnsQuestion {
 }
 
 impl DnsQuestion {
-    pub fn new(question: DnsQuestion) -> DnsQuestion {
-        question
-    }
-
     pub fn name(&self) -> &String {
         &self.name
     }

@@ -11,12 +11,6 @@ pub struct DnsRecord {
     pub data: Vec<u8>,
 }
 
-impl DnsRecord {
-    pub fn new(record: DnsRecord) -> Self {
-        record
-    }
-}
-
 impl From<&DnsRecord> for Bytes {
     fn from(record: &DnsRecord) -> Self {
         let mut bytes = BytesMut::new();

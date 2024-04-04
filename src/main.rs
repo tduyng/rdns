@@ -27,26 +27,26 @@ fn main() -> Result<()> {
                     .question_count(1)
                     .answer_count(1)
                     .build()?;
-                let question_name = request.questions().first().unwrap().name().clone();
+
                 let question = DnsQuestion {
-                    name: question_name,
+                    name: request.questions().first().unwrap().name().clone(),
                     record_type: 1,
                     class: 1,
                 };
-                let answer = DnsRecord::new(DnsRecord {
+                let answer = DnsRecord {
                     name: request.questions().first().unwrap().name().clone(),
                     record_type: 1,
                     class: 1,
                     ttl: 60,
                     length: 4,
                     data: vec![0x8, 0x8, 0x8, 0x8],
-                });
+                };
 
-                let dns_packet = DnsPacket::new(DnsPacket {
+                let dns_packet = DnsPacket {
                     header,
                     questions: vec![question],
                     answers: vec![answer],
-                });
+                };
 
                 let response_bytes: Bytes = dns_packet.into();
 

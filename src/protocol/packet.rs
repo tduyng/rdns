@@ -50,14 +50,6 @@ impl From<&mut Bytes> for DnsPacket {
 }
 
 impl DnsPacket {
-    pub fn new(packet: DnsPacket) -> Self {
-        Self {
-            header: packet.header,
-            questions: packet.questions,
-            answers: packet.answers,
-        }
-    }
-
     pub fn header(&self) -> &DnsHeader {
         &self.header
     }
