@@ -1,9 +1,22 @@
 use anyhow::{Error, Result};
 use bytes::Bytes;
+use clap::Parser;
 use dns_starter_rust::protocol::DnsPacket;
 use std::net::UdpSocket;
 
+#[derive(Parser, Debug)]
+#[command(version, about, long_about=None)]
+struct Cli {
+    #[arg(short,long,help="Ip address <ip>:<port>")]
+    resolver: String
+}
+
 fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    let _address = cli.resolver;
+
+
     let udp_socket = UdpSocket::bind("127.0.0.1:2053").expect("Failed to bind to address");
     let mut buf = [0; 512];
 

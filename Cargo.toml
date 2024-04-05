@@ -24,3 +24,4 @@ bytes = "1.6"            # helps manage buffers
 thiserror = "1.0"       # error handling
 nom = "7.1"              # parsing
 rand = "0.8"             # randomness
+clap = { version = "4.5.4", features = ["derive"] }
