@@ -1,7 +1,7 @@
-use std::net::UdpSocket;
 use super::{DnsHeader, DnsQuestion, DnsRecord};
 use bytes::{BufMut, Bytes, BytesMut};
 use nom::{bits, IResult};
+use std::net::UdpSocket;
 
 #[derive(Debug)]
 pub struct DnsPacket {
@@ -62,7 +62,7 @@ impl DnsPacket {
         ))
     }
 
-    pub fn to_response(buf: &[u8], ip_address: String) -> Bytes {
+    pub fn to_response(buf: &[u8], ip_address: &String) -> Bytes {
         let (_, request) = Self::parse_request(buf).unwrap();
 
         let mut questions: Vec<DnsQuestion> =
@@ -74,7 +74,7 @@ impl DnsPacket {
         let mut answers: Vec<DnsRecord> =
             Vec::with_capacity(request.header().answer_count() as usize);
         for i in 0..request.header().answer_count() as usize {
-            let record = Self::forward_dns(questions.get(i).unwrap().to_owned(), &ip_address);
+            let record = Self::forward_dns(questions.get(i).unwrap().to_owned(), ip_address);
             answers.push(record);
         }
 

@@ -24,7 +24,7 @@ fn main() -> Result<()> {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
                 let buf = &buf[..size].to_owned();
-                let response_bytes: Bytes = DnsPacket::to_response(buf, ip_address.clone());
+                let response_bytes: Bytes = DnsPacket::to_response(buf, &ip_address);
 
                 udp_socket
                     .send_to(&response_bytes, source)
