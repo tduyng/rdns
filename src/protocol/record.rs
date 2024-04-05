@@ -1,6 +1,12 @@
-use super::DnsPacket;
+use super::{DnsPacket, DnsQuestion};
 use crate::utils::{decode, encode};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
+use nom::{
+    bytes::complete::take as take_bytes,
+    multi,
+    number::complete::{be_u16, be_u32},
+    IResult,
+};
 
 #[derive(Debug, Clone)]
 pub struct DnsRecord {
@@ -43,6 +49,36 @@ impl DnsRecord {
             length,
             data: Vec::from(data.chunk()),
         }
+    }
+
+    pub fn parse_request<'a>(
+        (input, message): (&'a [u8], &'a [u8]),
+        count: usize,
+    ) -> IResult<&'a [u8], Vec<DnsRecord>> {
+        multi::count(
+            |_i| {
+                let (input, names) = DnsQuestion::parse_name((input, message))?;
+                let (input, record_type) = be_u16(input)?;
+                let (input, class) = be_u16(input)?;
+                let (input, ttl) = be_u32(input)?;
+                let (input, length) = be_u16(input)?;
+                let (input, data) = take_bytes(length)(input)?;
+                let name = names.join(".");
+
+                Ok((
+                    input,
+                    DnsRecord {
+                        name,
+                        record_type,
+                        class,
+                        ttl,
+                        length,
+                        data: data.to_owned(),
+                    },
+                ))
+            },
+            count,
+        )(input)
     }
 
     pub fn to_response(packet_response: &DnsPacket) -> Vec<DnsRecord> {

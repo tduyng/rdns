@@ -1,111 +1,137 @@
 use super::DnsPacket;
-use anyhow::Result;
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
+use nom::{
+    complete::{bool as take_bool, take},
+    IResult,
+};
 
 #[derive(Debug, Clone)]
 pub struct DnsHeader {
-    bytes: Bytes,
+    pub id: u16,
+    pub query_response: bool,
+    pub op_code: u8,
+    pub authoritative_answer: bool,
+    pub truncated_message: bool,
+    pub desired_recursion: bool,
+    pub available_recursion: bool,
+    pub reserved_bits: u8,
+    pub response_code: u8,
+    pub question_count: u16,
+    pub answer_count: u16,
+    pub authority_count: u16,
+    pub additional_count: u16,
 }
 
-#[derive(Debug, Default)]
-pub struct DnsHeaderBuilder {
-    packet_id: Option<u16>,
-    query_response: Option<u8>,
-    op_code: Option<u8>,
-    authoritative_answer: Option<u8>,
-    truncated_message: Option<u8>,
-    desired_recursion: Option<u8>,
-    available_recursion: Option<u8>,
-    response_code: Option<u8>,
-    question_count: Option<u16>,
-    answer_count: Option<u16>,
-    authority_count: Option<u16>,
-    additional_count: Option<u16>,
-}
-
-impl TryFrom<&mut Bytes> for DnsHeader {
-    type Error = anyhow::Error;
-
-    fn try_from(buf: &mut Bytes) -> Result<Self, Self::Error> {
-        let bytes = buf.slice(0..12);
-        buf.advance(12);
-
-        Ok(DnsHeader { bytes })
-    }
-}
-
-impl From<DnsHeader> for Bytes {
-    fn from(header: DnsHeader) -> Self {
-        header.bytes
+impl From<&DnsHeader> for Bytes {
+    fn from(value: &DnsHeader) -> Self {
+        let mut bytes = BytesMut::with_capacity(12);
+        bytes.put_u16(value.id);
+        let flags: u16 = ((value.query_response as u16) << 15)
+            | ((value.op_code as u16) << 11)
+            | ((value.authoritative_answer as u16) << 10)
+            | ((value.truncated_message as u16) << 9)
+            | ((value.desired_recursion as u16) << 8)
+            | ((value.available_recursion as u16) << 7)
+            | ((value.reserved_bits as u16) << 4)
+            | value.response_code as u16;
+        bytes.put_u16(flags);
+        bytes.put_u16(value.question_count);
+        bytes.put_u16(value.answer_count);
+        bytes.put_u16(value.authority_count);
+        bytes.put_u16(value.additional_count);
+        bytes.freeze()
     }
 }
 
 impl DnsHeader {
-    pub fn new(builder: DnsHeaderBuilder) -> Result<Self> {
-        builder.build()
+    pub fn new(header: DnsHeader) -> Self {
+        header
     }
 
-    pub fn bytes(&self) -> &Bytes {
-        &self.bytes
+    pub fn id(&self) -> u16 {
+        self.id
     }
 
-    pub fn into(&self) -> Bytes {
-        self.bytes.slice(..)
-    }
-
-    pub fn packet_id(&self) -> u16 {
-        self.bytes.slice(0..2).get_u16()
-    }
-
-    pub fn query_response(&self) -> u8 {
-        // Extract the QR bit (1st bit of the 3rd byte)
-        (self.bytes[2] & 0b1000_0000) >> 7
+    pub fn query_response(&self) -> bool {
+        self.query_response
     }
 
     pub fn op_code(&self) -> u8 {
-        // Extract the OPCODE bits (2nd to 5th bits of the 3rd byte)
-        (self.bytes[2] & 0b0111_1000) >> 3
+        self.op_code
     }
 
-    pub fn authoritative_answer(&self) -> u8 {
-        // Extract the AA bit (3rd bit of the 3rd byte)
-        (self.bytes[2] & 0b0000_0100) >> 2
+    pub fn authoritative_answer(&self) -> bool {
+        self.authoritative_answer
     }
 
-    pub fn truncated_message(&self) -> u8 {
-        // Extract the TC bit (2nd bit of the 3rd byte)
-        (self.bytes[2] & 0b0000_0010) >> 1
+    pub fn truncated_message(&self) -> bool {
+        self.truncated_message
     }
 
-    pub fn desired_recursion(&self) -> u8 {
-        // Extract the RD bit (1st bit of the 3rd byte)
-        self.bytes[2] & 0b0000_0001
+    pub fn desired_recursion(&self) -> bool {
+        self.desired_recursion
     }
 
-    pub fn available_recursion(&self) -> u8 {
-        // Extract the RA bit (8th bit of the 4th byte)
-        (self.bytes[3] & 0b1000_0000) >> 7
+    pub fn available_recursion(&self) -> bool {
+        self.available_recursion
+    }
+
+    pub fn reserved_bits(&self) -> u8 {
+        self.reserved_bits
     }
 
     pub fn response_code(&self) -> u8 {
-        // Extract the RCODE bits (1st to 4th bits of the 4th byte)
-        self.bytes[3] & 0b0000_1111
+        self.response_code
     }
 
     pub fn question_count(&self) -> u16 {
-        self.bytes.slice(4..6).get_u16()
+        self.question_count
     }
 
     pub fn answer_count(&self) -> u16 {
-        self.bytes.slice(6..8).get_u16()
+        self.answer_count
     }
 
     pub fn authority_count(&self) -> u16 {
-        self.bytes.slice(8..10).get_u16()
+        self.authority_count
     }
 
     pub fn additional_count(&self) -> u16 {
-        self.bytes.slice(10..12).get_u16()
+        self.additional_count
+    }
+
+    pub fn parse_request(buf: (&[u8], usize)) -> IResult<(&[u8], usize), DnsHeader> {
+        let (buf, id): (_, u16) = take(16_usize)(buf)?;
+        let (buf, query_response): (_, bool) = take_bool(buf)?;
+        let (buf, op_code): (_, u8) = take(4_usize)(buf)?;
+        let (buf, authoritative_answer): (_, bool) = take_bool(buf)?;
+        let (buf, truncated_message): (_, bool) = take_bool(buf)?;
+        let (buf, desired_recursion): (_, bool) = take_bool(buf)?;
+        let (buf, available_recursion): (_, bool) = take_bool(buf)?;
+        let (buf, reserved_bits): (_, u8) = take(3_usize)(buf)?;
+        let (buf, response_code): (_, u8) = take(4_usize)(buf)?;
+        let (buf, question_count): (_, u16) = take(16_usize)(buf)?;
+        let (buf, answer_count): (_, u16) = take(16_usize)(buf)?;
+        let (buf, authority_count): (_, u16) = take(16_usize)(buf)?;
+        let (buf, additional_count): (_, u16) = take(16_usize)(buf)?;
+
+        let header = DnsHeader {
+            id,
+            query_response,
+            op_code,
+            authoritative_answer,
+            truncated_message,
+            desired_recursion,
+            available_recursion,
+            reserved_bits,
+            response_code,
+            question_count,
+            answer_count,
+            authority_count,
+            additional_count,
+        };
+
+        Ok((buf, header))
     }
 
     pub fn to_response(request: &DnsPacket) -> DnsHeader {
@@ -113,117 +139,20 @@ impl DnsHeader {
         let op_code = request_header.op_code();
         let response_code = if op_code == 0 { 0 } else { 4 };
 
-        DnsHeaderBuilder::new()
-            .packet_id(request_header.packet_id())
-            .query_response(1)
-            .op_code(op_code)
-            .desired_recursion(request_header.desired_recursion())
-            .response_code(response_code)
-            .question_count(request_header.question_count())
-            .answer_count(request_header.question_count())
-            .authority_count(request_header.question_count())
-            .additional_count(request_header.question_count())
-            .build()
-            .unwrap()
-    }
-}
-
-impl DnsHeaderBuilder {
-    pub fn new() -> Self {
-        Default::default()
-    }
-
-    pub fn packet_id(mut self, packet_id: u16) -> Self {
-        self.packet_id = Some(packet_id);
-        self
-    }
-
-    pub fn query_response(mut self, query_response: u8) -> Self {
-        self.query_response = Some(query_response);
-        self
-    }
-
-    pub fn op_code(mut self, op_code: u8) -> Self {
-        self.op_code = Some(op_code);
-        self
-    }
-
-    pub fn authoritative_answer(mut self, authoritative_answer: u8) -> Self {
-        self.authoritative_answer = Some(authoritative_answer);
-        self
-    }
-
-    pub fn truncated_message(mut self, truncated_message: u8) -> Self {
-        self.truncated_message = Some(truncated_message);
-        self
-    }
-
-    pub fn desired_recursion(mut self, desired_recursion: u8) -> Self {
-        self.desired_recursion = Some(desired_recursion);
-        self
-    }
-
-    pub fn available_recursion(mut self, available_recursion: u8) -> Self {
-        self.available_recursion = Some(available_recursion);
-        self
-    }
-
-    pub fn response_code(mut self, response_code: u8) -> Self {
-        self.response_code = Some(response_code);
-        self
-    }
-
-    pub fn question_count(mut self, question_count: u16) -> Self {
-        self.question_count = Some(question_count);
-        self
-    }
-
-    pub fn answer_count(mut self, answer_count: u16) -> Self {
-        self.answer_count = Some(answer_count);
-        self
-    }
-
-    pub fn authority_count(mut self, authority_count: u16) -> Self {
-        self.authority_count = Some(authority_count);
-        self
-    }
-
-    pub fn additional_count(mut self, additional_count: u16) -> Self {
-        self.additional_count = Some(additional_count);
-        self
-    }
-
-    pub fn build(self) -> Result<DnsHeader> {
-        let packet_id = self.packet_id.ok_or("Packet ID is required").unwrap();
-        let query_response = self.query_response.unwrap_or_default();
-        let op_code = self.op_code.unwrap_or_default();
-        let authoritative_answer = self.authoritative_answer.unwrap_or_default();
-        let truncated_message = self.truncated_message.unwrap_or_default();
-        let desired_recursion = self.desired_recursion.unwrap_or_default();
-        let available_recursion = self.available_recursion.unwrap_or_default();
-        let response_code = self.response_code.unwrap_or_default();
-        let question_count = self.question_count.unwrap_or_default();
-        let answer_count = self.answer_count.unwrap_or_default();
-        let authority_count = self.authority_count.unwrap_or_default();
-        let additional_count = self.additional_count.unwrap_or_default();
-
-        let mut bytes_mut = BytesMut::with_capacity(12);
-        bytes_mut.put_u16(packet_id);
-        bytes_mut.put_u8(
-            (query_response << 7)
-                | (op_code << 3)
-                | (authoritative_answer << 2)
-                | (truncated_message << 1)
-                | desired_recursion,
-        );
-        bytes_mut.put_u8((available_recursion << 7) | response_code);
-        bytes_mut.put_u16(question_count);
-        bytes_mut.put_u16(answer_count);
-        bytes_mut.put_u16(authority_count);
-        bytes_mut.put_u16(additional_count);
-
-        Ok(DnsHeader {
-            bytes: bytes_mut.freeze(),
-        })
+        DnsHeader {
+            id: request_header.id(),
+            query_response: true,
+            op_code,
+            authoritative_answer: false,
+            truncated_message: false,
+            desired_recursion: request_header.desired_recursion(),
+            available_recursion: false,
+            reserved_bits: request_header.reserved_bits(),
+            response_code,
+            question_count: request_header.question_count(),
+            answer_count: request_header.question_count(),
+            authority_count: request_header.question_count(),
+            additional_count: request_header.question_count(),
+        }
     }
 }

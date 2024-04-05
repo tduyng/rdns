@@ -14,7 +14,7 @@ struct Cli {
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let _address = cli.resolver;
+    let ip_address = cli.resolver;
 
     let udp_socket = UdpSocket::bind("127.0.0.1:2053").expect("Failed to bind to address");
     let mut buf = [0; 512];
@@ -23,9 +23,8 @@ fn main() -> Result<()> {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
-
-                let response_bytes: Bytes =
-                    DnsPacket::to_response(Bytes::copy_from_slice(&buf[..size]));
+                let buf = &buf[..size].to_owned();
+                let response_bytes: Bytes = DnsPacket::to_response(buf, ip_address.clone());
 
                 udp_socket
                     .send_to(&response_bytes, source)
