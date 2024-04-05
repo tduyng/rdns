@@ -1,3 +1,4 @@
+use super::DnsPacket;
 use crate::utils::{decode, encode};
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -42,5 +43,24 @@ impl DnsRecord {
             length,
             data: Vec::from(data.chunk()),
         }
+    }
+
+    pub fn to_response(packet_response: &DnsPacket) -> Vec<DnsRecord> {
+        let header = packet_response.header();
+        let questions = packet_response.questions();
+
+        let mut answers = Vec::with_capacity(header.answer_count() as usize);
+        for _ in 0..header.question_count() as usize {
+            let answer = DnsRecord {
+                name: questions.first().unwrap().name().clone(),
+                record_type: 1,
+                class: 1,
+                ttl: 60,
+                length: 4,
+                data: vec![0x8, 0x8, 0x8, 0x8],
+            };
+            answers.push(answer);
+        }
+        answers
     }
 }

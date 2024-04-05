@@ -1,3 +1,4 @@
+use super::DnsPacket;
 use anyhow::Result;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 
@@ -105,6 +106,25 @@ impl DnsHeader {
 
     pub fn additional_count(&self) -> u16 {
         self.bytes.slice(10..12).get_u16()
+    }
+
+    pub fn to_response(request: &DnsPacket) -> DnsHeader {
+        let request_header = request.header();
+        let op_code = request_header.op_code();
+        let response_code = if op_code == 0 { 0 } else { 4 };
+
+        DnsHeaderBuilder::new()
+            .packet_id(request_header.packet_id())
+            .query_response(1)
+            .op_code(op_code)
+            .desired_recursion(request_header.desired_recursion())
+            .response_code(response_code)
+            .question_count(request_header.question_count())
+            .answer_count(request_header.question_count())
+            .authority_count(request_header.question_count())
+            .additional_count(request_header.question_count())
+            .build()
+            .unwrap()
     }
 }
 

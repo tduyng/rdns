@@ -1,4 +1,4 @@
-use super::{DnsHeader, DnsHeaderBuilder, DnsQuestion, DnsRecord};
+use super::{DnsHeader, DnsQuestion, DnsRecord};
 use bytes::{BufMut, Bytes, BytesMut};
 
 #[derive(Debug)]
@@ -62,49 +62,13 @@ impl DnsPacket {
         &self.answers
     }
 
-    pub fn parse_response(bytes: Bytes) -> Bytes {
+    pub fn to_response(bytes: Bytes) -> Bytes {
         let request = DnsPacket::from(bytes);
 
-        let request_header = request.header();
-        let op_code = request_header.op_code();
-        let response_code = if op_code == 0 { 0 } else { 4 };
-
-        let header = DnsHeaderBuilder::new()
-            .packet_id(request_header.packet_id())
-            .query_response(1)
-            .op_code(op_code)
-            .desired_recursion(request_header.desired_recursion())
-            .response_code(response_code)
-            .question_count(request_header.question_count())
-            .answer_count(request_header.question_count())
-            .authority_count(request_header.question_count())
-            .additional_count(request_header.question_count())
-            .build()
-            .unwrap();
-
-        let mut questions: Vec<DnsQuestion> =
-            Vec::with_capacity(request.header().question_count() as usize);
-        for i in 0..request.header().question_count() as usize {
-            questions.push(request.questions().get(i).unwrap().to_owned());
-        }
-
-        let mut answers = Vec::with_capacity(request.header().answer_count() as usize);
-        for _ in 0..request.header().question_count() as usize {
-            let answer = DnsRecord {
-                name: request.questions().first().unwrap().name().clone(),
-                record_type: 1,
-                class: 1,
-                ttl: 60,
-                length: 4,
-                data: vec![0x8, 0x8, 0x8, 0x8],
-            };
-            answers.push(answer);
-        }
-
         let dns_packet = DnsPacket {
-            header,
-            questions,
-            answers,
+            header: DnsHeader::to_response(&request),
+            questions: DnsQuestion::to_response(&request),
+            answers: DnsRecord::to_response(&request),
         };
 
         dns_packet.into()
