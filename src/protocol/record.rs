@@ -1,4 +1,6 @@
-use super::{DnsPacket, DnsQuestion};
+use std::net::UdpSocket;
+
+use super::{DnsHeader, DnsPacket, DnsQuestion};
 use crate::utils::encode;
 use bytes::{BufMut, Bytes, BytesMut};
 use nom::{
@@ -63,22 +65,51 @@ impl DnsRecord {
         )(input)
     }
 
-    pub fn to_response(packet_response: &DnsPacket) -> Vec<DnsRecord> {
-        let header = packet_response.header();
-        let questions = packet_response.questions();
+    pub fn to_response(packet: &DnsPacket, ip_address: &String) -> Vec<DnsRecord> {
+        let header = packet.header();
+        let questions = packet.questions();
 
         let mut answers = Vec::with_capacity(header.answer_count() as usize);
-        for _ in 0..header.question_count() as usize {
-            let answer = DnsRecord {
-                name: questions.first().unwrap().name().clone(),
-                record_type: 1,
-                class: 1,
-                ttl: 60,
-                length: 4,
-                data: vec![0x8, 0x8, 0x8, 0x8],
-            };
-            answers.push(answer);
+        for i in 0..header.question_count() as usize {
+            let record = Self::forward_dns(questions.get(i).unwrap().to_owned(), ip_address);
+
+            answers.push(record);
         }
         answers
+    }
+
+    fn forward_dns(question: DnsQuestion, ip_address: &String) -> DnsRecord {
+        let socket = UdpSocket::bind("localhost:0").expect("Failed to bind to resolver");
+        let header = DnsHeader {
+            id: 123,
+            query_response: false,
+            op_code: 0,
+            authoritative_answer: false,
+            truncated_message: false,
+            desired_recursion: true,
+            available_recursion: false,
+            reserved_bits: 0,
+            response_code: 0,
+            question_count: 1,
+            answer_count: 0,
+            authority_count: 0,
+            additional_count: 0,
+        };
+
+        let packet = DnsPacket {
+            header,
+            questions: vec![question],
+            answers: vec![],
+        };
+        socket
+            .send_to(&Bytes::from(packet), ip_address)
+            .expect("Unable to send message");
+
+        let mut buf = [0; 512];
+
+        socket.recv_from(&mut buf).expect("Recieved message");
+        let (_, packet) = DnsPacket::parse_request(&buf).expect("Unable to parse dns response");
+
+        packet.answers().first().unwrap().to_owned()
     }
 }

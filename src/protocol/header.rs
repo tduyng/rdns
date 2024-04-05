@@ -147,7 +147,7 @@ impl DnsHeader {
             truncated_message: false,
             desired_recursion: request_header.desired_recursion(),
             available_recursion: false,
-            reserved_bits: request_header.reserved_bits(),
+            reserved_bits: 0,
             response_code,
             question_count: request_header.question_count(),
             answer_count: request_header.question_count(),

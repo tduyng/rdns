@@ -61,12 +61,13 @@ impl DnsQuestion {
         Ok((buf, questions))
     }
 
-    pub fn to_response(packet_response: &DnsPacket) -> Vec<DnsQuestion> {
-        let header = packet_response.header();
-        let mut questions: Vec<DnsQuestion> = Vec::with_capacity(header.question_count() as usize);
-        for i in 0..header.question_count() as usize {
-            questions.push(packet_response.questions().get(i).unwrap().to_owned());
+    pub fn to_response(packet: &DnsPacket) -> Vec<DnsQuestion> {
+        let mut questions: Vec<DnsQuestion> =
+            Vec::with_capacity(packet.header().question_count() as usize);
+        for i in 0..packet.header().question_count() as usize {
+            questions.push(packet.questions().get(i).unwrap().to_owned());
         }
+
         questions
     }
 
