@@ -1,7 +1,7 @@
 use anyhow::{Error, Result};
 use bytes::Bytes;
 use clap::Parser;
-use dns_starter_rust::protocol::DnsPacket;
+use rdns::protocol::DnsPacket;
 use std::net::UdpSocket;
 
 #[derive(Parser, Debug)]
