@@ -1,5 +1,4 @@
 use std::net::UdpSocket;
-
 use super::{DnsHeader, DnsQuestion, DnsRecord};
 use bytes::{BufMut, Bytes, BytesMut};
 use nom::{bits, IResult};
@@ -88,8 +87,8 @@ impl DnsPacket {
         dns_packet.into()
     }
 
-    fn forward_dns(question: DnsQuestion, resolver_addr: &String) -> DnsRecord {
-        let socket = UdpSocket::bind("localhost:0").expect("failed to bind to resolver");
+    fn forward_dns(question: DnsQuestion, ip_address: &String) -> DnsRecord {
+        let socket = UdpSocket::bind("localhost:0").expect("Failed to bind to resolver");
         let header = DnsHeader {
             id: 123,
             query_response: false,
@@ -112,15 +111,13 @@ impl DnsPacket {
             answers: vec![],
         };
         socket
-            .send_to(&Bytes::from(packet), resolver_addr)
-            .expect("unable to send message");
+            .send_to(&Bytes::from(packet), ip_address)
+            .expect("Unable to send message");
 
         let mut buf = [0; 512];
 
-        socket
-            .recv_from(&mut buf)
-            .expect("should have recieved message");
-        let (_, packet) = DnsPacket::parse_request(&buf).expect("unable to parse dns response");
+        socket.recv_from(&mut buf).expect("Recieved message");
+        let (_, packet) = DnsPacket::parse_request(&buf).expect("Unable to parse dns response");
 
         packet.answers().first().unwrap().to_owned()
     }

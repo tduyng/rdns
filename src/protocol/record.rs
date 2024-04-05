@@ -1,6 +1,6 @@
 use super::{DnsPacket, DnsQuestion};
-use crate::utils::{decode, encode};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use crate::utils::encode;
+use bytes::{BufMut, Bytes, BytesMut};
 use nom::{
     bytes::complete::take as take_bytes,
     multi,
@@ -33,24 +33,6 @@ impl From<&DnsRecord> for Bytes {
 }
 
 impl DnsRecord {
-    pub fn from_bytes(bytes: &mut Bytes, orig: &Bytes) -> Self {
-        let name = decode(bytes, orig);
-        let record_type = bytes.get_u16();
-        let class = bytes.get_u16();
-        let ttl = bytes.get_u32();
-        let length = bytes.get_u16();
-        let data = bytes.copy_to_bytes(length as usize);
-
-        Self {
-            name,
-            record_type,
-            class,
-            ttl,
-            length,
-            data: Vec::from(data.chunk()),
-        }
-    }
-
     pub fn parse_request<'a>(
         (input, message): (&'a [u8], &'a [u8]),
         count: usize,

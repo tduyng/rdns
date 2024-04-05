@@ -1,6 +1,6 @@
 use super::DnsPacket;
-use crate::utils::{decode, encode};
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use crate::utils::encode;
+use bytes::{BufMut, Bytes, BytesMut};
 use nom::{
     bytes::complete::take as take_bytes,
     error::{Error, FromExternalError},
@@ -37,27 +37,6 @@ impl DnsQuestion {
 
     pub fn class(&self) -> u16 {
         self.class
-    }
-
-    pub fn from_bytes(bytes: &mut Bytes, original: &Bytes) -> Self {
-        let name = decode(bytes, original);
-        let record_type = if bytes.remaining() >= 2 {
-            bytes.get_u16()
-        } else {
-            1
-        };
-
-        let class = if bytes.remaining() >= 2 {
-            bytes.get_u16()
-        } else {
-            1
-        };
-
-        Self {
-            name,
-            record_type,
-            class,
-        }
     }
 
     pub fn parse_request<'a>(
