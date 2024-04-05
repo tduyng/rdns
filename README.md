@@ -1,9 +1,14 @@
+# Build your own DNS server
+
 [![progress-banner](https://backend.codecrafters.io/progress/dns-server/fb66e20e-06fa-4037-b84b-53d9ca3a788b)](https://app.codecrafters.io/users/codecrafters-bot?r=2qF)
 
-This is a starting point for Rust solutions to the
+Welcome to the "Build Your Own DNS Server" Challenge repository for Rust solutions!
+
+## Overview
+This repository serves as a my Rust solutions to the
 ["Build Your Own DNS server" Challenge](https://app.codecrafters.io/courses/dns-server/overview).
 
-In this challenge, you'll build a DNS server that's capable of parsing and
+You'll build a DNS server that's capable of parsing and
 creating DNS packets, responding to DNS queries, handling various record types
 and doing recursive resolve. Along the way we'll learn about the DNS protocol,
 DNS packet format, root servers, authoritative servers, forwarding servers,
@@ -12,21 +17,7 @@ various record types (A, AAAA, CNAME, etc) and more.
 **Note**: If you're viewing this repo on GitHub, head over to
 [codecrafters.io](https://codecrafters.io) to try the challenge.
 
-# Passing the first stage
-
-The entry point for your `your_server.sh` implementation is in `src/main.rs`.
-Study and uncomment the relevant code, and push your changes to pass the first
-stage:
-
-```sh
-git add .
-git commit -m "pass 1st stage" # any msg
-git push origin master
-```
-
-Time to move on to the next stage!
-
-# Stage 2 & beyond
+## Getting started
 
 Note: This section is for stages 2 and beyond.
 
